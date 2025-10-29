@@ -14,25 +14,33 @@ class _RatingScreenState extends State<RatingScreen> {
   StateMachineController? controller;
 
   // SMI: State Machine Input
-  SMIBool? isChecking; //Activa el modo "chismoso"
-  SMIBool? isHandsUp; //Baja las manos
+
   SMITrigger? trigSuccess; //Animación de éxito
   SMITrigger? trigFail; //Animación de fallo
+  Artboard? mainArtboard;
+  double _ratingValue = 0;
 
-  //Foco pendiente de la barra:
-  final ratingBarFocus = FocusNode();
+  Future<void> _restartControllerAndTrigger(bool? isSuccess) async {
+    if (mainArtboard == null) return;
+    mainArtboard!.removeController(controller!);
+    controller = StateMachineController.fromArtboard(
+      mainArtboard!,
+      'Login Machine',
+    );
+    if (controller != null) {
+      mainArtboard!.addController(controller!);
+      trigSuccess = controller!.findSMI('trigSuccess');
+      trigFail = controller!.findSMI('trigFail');
+    }
 
-  //listeners para los cambios en las variables
-  @override
-  void initState() {
-    super.initState();
+    await Future.delayed(const Duration(milliseconds: 50));
 
-    ratingBarFocus.addListener(() {
-      if (!ratingBarFocus.hasFocus) {
-        //Si pierde el foco, bajar las manos
-        isHandsUp?.change(false);
-      }
-    });
+    if (isSuccess == null) return;
+    if (isSuccess) {
+      trigSuccess?.fire();
+    } else {
+      trigFail?.fire();
+    }
   }
 
   @override
@@ -54,6 +62,7 @@ class _RatingScreenState extends State<RatingScreen> {
                   stateMachines: ["Login Machine"],
                   //Al iniciarse
                   onInit: (artboard) {
+                    mainArtboard = artboard;
                     controller = StateMachineController.fromArtboard(
                       artboard,
                       "Login Machine",
@@ -62,8 +71,6 @@ class _RatingScreenState extends State<RatingScreen> {
                     if (controller == null) return;
                     artboard.addController(controller!);
                     //Asignar las variables
-                    isChecking = controller!.findSMI("isChecking");
-                    isHandsUp = controller!.findSMI("isHandsUp");
                     trigSuccess = controller!.findSMI("trigSuccess");
                     trigFail = controller!.findSMI("trigFail");
                   },
@@ -87,7 +94,7 @@ class _RatingScreenState extends State<RatingScreen> {
               const SizedBox(height: 20),
 
               RatingBar.builder(
-                initialRating: 3,
+                initialRating: 0,
                 minRating: 1,
                 direction: Axis.horizontal,
                 allowHalfRating: true,
@@ -95,11 +102,16 @@ class _RatingScreenState extends State<RatingScreen> {
                 itemPadding: const EdgeInsets.symmetric(horizontal: 4.0),
                 itemBuilder: (context, _) =>
                     const Icon(Icons.star, color: Colors.amber),
-                onRatingUpdate: (rating) {
-                  if (rating <= 3) {
-                    trigFail?.fire();
+                onRatingUpdate: (value) {
+                  setState(() {
+                    _ratingValue = value;
+                  });
+                  if (value >= 4) {
+                    _restartControllerAndTrigger(true);
+                  } else if (value <= 2) {
+                    _restartControllerAndTrigger(false);
                   } else {
-                    trigSuccess?.fire();
+                    _restartControllerAndTrigger(null);
                   }
                 },
               ),
