@@ -17,28 +17,38 @@ class _RatingScreenState extends State<RatingScreen> {
 
   SMITrigger? trigSuccess; //Animación de éxito
   SMITrigger? trigFail; //Animación de fallo
-  Artboard? mainArtboard;
-  double _ratingValue = 0;
+  Artboard? mainArtboard; //Tablero principal de Rive
+  double _ratingValue = 0; //Valor de la calificación
 
+  //Función para reiniciar el controlador y disparar la animación correspondiente
   Future<void> _restartControllerAndTrigger(bool? isSuccess) async {
+    //Verifica que el controlador esté bien inicializado
     if (mainArtboard == null) return;
+
+    //Reinicia el controlador del State Machine
     mainArtboard!.removeController(controller!);
     controller = StateMachineController.fromArtboard(
       mainArtboard!,
       'Login Machine',
     );
+
+    //Si el controlador se reinició bien, se reasiganna las variables
     if (controller != null) {
       mainArtboard!.addController(controller!);
       trigSuccess = controller!.findSMI('trigSuccess');
       trigFail = controller!.findSMI('trigFail');
     }
 
+    //Delay que asegura que el contolador se haya reiniciado
     await Future.delayed(const Duration(milliseconds: 50));
 
+    //Disparar la animación correspondiente
     if (isSuccess == null) return;
     if (isSuccess) {
+      //Dispara la animación de éxito
       trigSuccess?.fire();
     } else {
+      //Dispara la animación de fallo
       trigFail?.fire();
     }
   }
@@ -62,14 +72,19 @@ class _RatingScreenState extends State<RatingScreen> {
                   stateMachines: ["Login Machine"],
                   //Al iniciarse
                   onInit: (artboard) {
+                    //Asignar el artboard principal
                     mainArtboard = artboard;
+
+                    //Crear el controlador del State Machine
                     controller = StateMachineController.fromArtboard(
                       artboard,
                       "Login Machine",
                     );
+
                     //Verificar si es conrtolador inció bien
                     if (controller == null) return;
                     artboard.addController(controller!);
+
                     //Asignar las variables
                     trigSuccess = controller!.findSMI("trigSuccess");
                     trigFail = controller!.findSMI("trigFail");
@@ -104,19 +119,24 @@ class _RatingScreenState extends State<RatingScreen> {
                     const Icon(Icons.star, color: Colors.amber),
                 onRatingUpdate: (value) {
                   setState(() {
+                    //Actualiza el valor de la calificación
                     _ratingValue = value;
                   });
+                  //Dispara la animación conrrespondiente, según la calificación
                   if (value >= 4) {
+                    //Dispara la animación de éxito
                     _restartControllerAndTrigger(true);
                   } else if (value <= 2) {
+                    //Dispara la animación de fallo
                     _restartControllerAndTrigger(false);
                   } else {
+                    //No hace nada
                     _restartControllerAndTrigger(null);
                   }
                 },
               ),
 
-              //Botón de Loginfeat
+              //Botón de calificar
               const SizedBox(height: 20),
               //Botón estilo Android
               MaterialButton(
